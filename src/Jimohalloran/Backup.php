@@ -82,8 +82,8 @@ class Backup {
 		$objects = $s3->get_object_list($awsConfig['bucket'], array('prefix' => 'jurlique-prod', 'max-keys' => 1));
 
 		if(count($objects) > 0) {
-			$response = $s3->get_object($awsConfig['bucket'], $objects[0]);
-			file_put_contents($objects[0], $response->body);
+			// TODO add support for a command line param to define the write directory
+			$s3->get_object($awsConfig['bucket'], $objects[0], array('fileDownload' => $objects[0]));
 			echo "Downloaded " . $objects[0] . " to the current directory.\n\n";
 		}
 	}
