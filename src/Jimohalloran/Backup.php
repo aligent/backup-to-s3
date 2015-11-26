@@ -167,8 +167,6 @@ class Backup {
 		$this->_tarball = $filename;
 		$cmd = 'nice tar zcf '. $this->_tarball . ' ' .$this->_tmpPath.'/';
 
-		echo '\n\n' . $cmd . '\n';
-
 		$process = new Process($cmd);
 		$process->setTimeout(3600);
 		$process->run();
