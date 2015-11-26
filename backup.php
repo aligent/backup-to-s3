@@ -26,7 +26,18 @@ try {
 }
 
 try {
-	$backup = new \Jimohalloran\Backup($config);
+	if(array_key_exists('custom_backup',$config) && $config['custom_backup']) {
+		$backup = new \Jimohalloran\CustomBackup($config);
+	}
+	else {
+		$backup = new \Jimohalloran\Backup($config);
+	}
+
+	if ($cmdLine->wantsDownload) {
+		$backup->downloadLatestDump();
+		exit;
+	}
+
 	$backup->execute();
 } catch (\Jimohalloran\BackupException $e) {
 	echo "Error performing backup: ".$e->getMessage()."\n";

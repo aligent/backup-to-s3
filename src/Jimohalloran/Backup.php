@@ -29,29 +29,62 @@ class Backup {
 	
 	public function execute() {
 		$this->_createTmpFolder();
-		
-		if (count($this->_config['database'])) {
-			$this->_tmpDbPath = $this->_createFolder(self::DATABASE_FOLDER);
-			foreach ($this->_config['database'] as $connectionInfo) {
-				$this->_mysqlDump($connectionInfo);
-			}
-		}
-		
-		if (count($this->_config['files'])) {
-			$this->_tmpFilePath = $this->_createFolder(self::FILE_FOLDER);
-			foreach ($this->_config['files'] as $conf) {
-				$this->_copyFiles($conf);
-			}
-		}
-		
+
+		$this->_prepareDbDump();
+
+		$this->_prepareFileDump();
+
 		if (count($this->_config['files']) || count($this->_config['database'])) {
-			$this->_createTarball($this->_config['name']);
+			$createTimestamp = array_key_exists('timestamp', $this->_config) && $this->_config['timestamp'] ? true : false;
+			$this->_createTarball($this->_config['name'], $createTimestamp);
 
             if (array_key_exists('gpg', $this->_config) && array_key_exists('encryption_key', $this->_config['gpg']) && trim($this->_config['gpg']['encryption_key']) != '') {
                 $this->_encryptBackup($this->_config['gpg']['encryption_key']);
             }
 
 			$this->_uploadToAmazonS3($this->_config['amazon']);
+		}
+	}
+
+	/**
+	 * Downloads the dump file recorded in the backup.yml file
+	 * TODO Currently only gets the first file matching <name>*. Add support to get the most recent instead
+	 */
+	public function downloadLatestDump() {
+		$this->_downloadAmazonS3($this->_config['amazon']);
+	}
+
+	protected function _prepareDbDump() {
+		if (count($this->_config['database'])) {
+			$this->_tmpDbPath = $this->_createFolder(self::DATABASE_FOLDER);
+			foreach ($this->_config['database'] as $connectionInfo) {
+				$this->_mysqlDump($connectionInfo);
+			}
+		}
+	}
+
+	protected function _prepareFileDump() {
+		if (count($this->_config['files'])) {
+			$this->_tmpFilePath = $this->_createFolder(self::FILE_FOLDER);
+			foreach ($this->_config['files'] as $conf) {
+				$this->_copyFiles($conf);
+			}
+		}
+	}
+
+	protected function _downloadAmazonS3($awsConfig) {
+
+		$s3 = new \AmazonS3(array(
+			'key' => $awsConfig['access_key_id'],
+			'secret' => $awsConfig['secret_access_key'],
+		));
+
+		$objects = $s3->get_object_list($awsConfig['bucket'], array('prefix' => 'jurlique-prod', 'max-keys' => 1));
+
+		if(count($objects) > 0) {
+			$response = $s3->get_object($awsConfig['bucket'], $objects[0]);
+			file_put_contents($objects[0], $response->body);
+			echo "Downloaded " . $objects[0] . " to the current directory.\n\n";
 		}
 	}
 	
@@ -123,9 +156,19 @@ class Backup {
 
     }
 
-	protected function _createTarball($siteName) {
-		$this->_tarball = sys_get_temp_dir().'/'.$siteName.'-'.date('YmdHi').'.tar.gz';
+	protected function _createTarball($siteName, $createTimestamp = true) {
+
+		$filename = sys_get_temp_dir().'/'.$siteName;
+		if($createTimestamp) {
+			$filename .= date('YmdHi');
+		}
+		$filename .= '.tar.gz';
+
+		$this->_tarball = $filename;
 		$cmd = 'nice tar zcf '. $this->_tarball . ' ' .$this->_tmpPath.'/';
+
+		echo '\n\n' . $cmd . '\n';
+
 		$process = new Process($cmd);
 		$process->setTimeout(3600);
 		$process->run();
