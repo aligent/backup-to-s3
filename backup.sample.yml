@@ -15,7 +15,7 @@ database:  # Backup a database with mysqldump
     database: name_of_database
     touch: /wwwroot/myproj/maintenance.flag  # (optional) Create a file while the database backup is performed and delete it afterwards.  Can be used to put magento into maintenance mode.
     working_dir: /var/www/vhosts/jurlique-other # (optional) The working directory from which to run the custom command
-    backup_command: 'n98-magerun.phar db:dump -s "@development @dev-no-conf" %' # (optional) The backup command to use instead of using the built in db backup. You must include a % symbol to designate where the filename
+    backup_command: 'n98-magerun.phar db:dump -s "@development @dev-no-conf" @@' # (optional) The backup command to use instead of using the built in db backup. You must include a @@ symbol to designate where the filename
 files: # Backup a folders including all files and subfolders.
   -    # Repeat this block if you want to back up multiple folder.
     name: assets      # Used to identify this path when creating backup folder,

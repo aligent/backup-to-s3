@@ -25,7 +25,7 @@ class CustomBackup extends Backup {
 
     protected function _executeCustomDump($conn) {
 
-        $cmd = str_replace("%", $this->_tmpDbPath . '/' . $conn['name'] . '.sql',$conn['backup_command']);
+        $cmd = str_replace("@@", $this->_tmpDbPath . '/' . $conn['name'] . '.sql',$conn['backup_command']);
 
         // Create a flag file during database backup.  e.g. Create a maintenance.
         // flag file to put Magento into maintenance mode.
